@@ -2,12 +2,17 @@ package tekton
 
 import (
 	"fmt"
+	"io"
+	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 )
 
 type PipelineRunGenerator interface {
@@ -138,4 +143,30 @@ func (p VerifyEnterpriseContract) Generate() *v1beta1.PipelineRun {
 			},
 		},
 	}
+}
+
+func StreamRemoteYamlToTektonObj(url string, obj runtime.Object) (runtime.Object, error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	bytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	return decodeBytesToTektonObjbytes(bytes, obj)
+}
+
+func decodeBytesToTektonObjbytes(bytes []byte, obj runtime.Object) (runtime.Object, error) {
+	decodingScheme := runtime.NewScheme()
+	utilruntime.Must(v1beta1.AddToScheme(decodingScheme))
+	decoderCodecFactory := serializer.NewCodecFactory(decodingScheme)
+	decoder := decoderCodecFactory.UniversalDecoder(v1beta1.SchemeGroupVersion)
+	err := runtime.DecodeInto(decoder, bytes, obj)
+	if err != nil {
+		return nil, err
+	}
+	return obj, nil
 }
