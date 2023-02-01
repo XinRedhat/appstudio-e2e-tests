@@ -12,12 +12,15 @@ import (
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"k8s.io/apimachinery/pkg/api/errors"
+	v1 "k8s.io/api/core/v1"
 
 	"github.com/redhat-appstudio/e2e-tests/pkg/constants"
 	"github.com/redhat-appstudio/e2e-tests/pkg/framework"
 	"github.com/redhat-appstudio/e2e-tests/pkg/utils"
 	"github.com/redhat-appstudio/e2e-tests/pkg/utils/tekton"
+	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -51,7 +54,6 @@ var _ = framework.PipelineSuiteDescribe("Pipeline E2E tests", Label("pipeline"),
 		var imageWithDigest string
 		serviceAccountName := "pipeline"
 
-		pipelineRunTimeout := 360
 		attestationTimeout := time.Duration(60) * time.Second
 
 		var kubeController tekton.KubeController
@@ -123,14 +125,58 @@ var _ = framework.PipelineSuiteDescribe("Pipeline E2E tests", Label("pipeline"),
 				GinkgoWriter.Printf("Cosign verify pass with .att and .sig ImageStreamTags found for %s\n", imageWithDigest)
 			})
 		})
+
+		Context("Test Tekton Result ", func() {
+			result_namespace := "tekton-results"
+			test_sa := "tekton-results-debug"
+			It("Verify Pipeline result is stored in persistent storage", func() {
+				//Download the API Server certificate locally
+				certPath := "/tmp/results.crt"
+				secret, err := fwk.CommonController.GetSecret(result_namespace, "tekton-results-tls")
+				Expect(err).ToNot(HaveOccurred())
+				os.WriteFile(certPath, secret.Data[v1.TLSCertKey], 0644)
+
+				//Retrieve Access Token
+				testSA := &v1.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{Name: "tekton-results-debug"},
+				}
+				fwk.CommonController.CreateServiceAccount(result_namespace, testSA)
+				// Wait until the "tekton-results-debug" SA is created
+				GinkgoWriter.Printf("Wait until the %q SA is created in namespace %q\n", testSA.GetName(), result_namespace)
+				Eventually(func() bool {
+					sa, err := kubeController.Commonctrl.GetServiceAccount(serviceAccountName, namespace)
+					return sa != nil && err == nil
+				}).WithTimeout(1*time.Minute).WithPolling(100*time.Millisecond).Should(
+					BeTrue(), "timed out when waiting for the %q SA to be created", serviceAccountName)
+
+				testClusterRoleBinding := &rbacv1.ClusterRoleBinding{
+					TypeMeta:   metav1.TypeMeta{},
+					ObjectMeta: metav1.ObjectMeta{Name: test_sa},
+					Subjects:   []rbacv1.Subject{{Kind: "ServiceAccount", Name: namespace, Namespace: namespace}},
+					RoleRef:    rbacv1.RoleRef{APIGroup: rbacv1.GroupName, Kind: "ClusterRole", Name: "tekton-results-readonly"},
+				}
+				fwk.CommonController.CreateClusterRoleBinding(testClusterRoleBinding)
+
+				accessToken, err := fwk.CommonController.GetServiceAccountToken(result_namespace, test_sa)
+				Expect(err).NotTo(HaveOccurred())
+				fmt.Println("accessToken: ", accessToken)
+				//
+				// tekton.NewResultsClient(certPath)
+				//Retrieve result ID from Pipelinerun
+				pr, err := kubeController.Tektonctrl.GetPipelineRun(buildPipelineRunName, namespace)
+				Expect(err).NotTo(HaveOccurred())
+				resultUID := pr.ObjectMeta.UID
+				fmt.Println("resultUID: ", resultUID)
+				//Retrieve result record from persistent storage
+
+			})
+		})
 	})
 
 	Describe("Trigger PipelineRun by Creating Component CR", Ordered, Label("pipeline"), func() {
-
 		var applicationName, componentName, testNamespace, outputContainerImage string
 		var kubeController tekton.KubeController
 		BeforeAll(func() {
-
 			if os.Getenv("APP_SUFFIX") != "" {
 				applicationName = fmt.Sprintf("test-app-%s", os.Getenv("APP_SUFFIX"))
 			} else {
