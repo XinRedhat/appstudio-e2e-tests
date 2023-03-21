@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/devfile/library/pkg/util"
-	"github.com/google/go-github/v44/github"
+	"github.com/google/go-github/v50/github"
 	ecp "github.com/hacbs-contract/enterprise-contract-controller/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

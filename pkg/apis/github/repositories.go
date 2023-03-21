@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/go-github/v44/github"
+	"github.com/google/go-github/v50/github"
 	. "github.com/onsi/ginkgo/v2"
 )
 
@@ -119,4 +119,14 @@ func (g *Github) DeleteRepository(repository *github.Repository) error {
 		return err
 	}
 	return nil
+}
+
+func (g *Github) ForkRepository(repository *github.Repository, targetOrg, targetRepo string) (*github.Repository, error) {
+	GinkgoWriter.Printf("Fork repository %s\n", *repository.GitURL)
+	opt := &github.RepositoryCreateForkOptions{Organization: targetOrg, Name: targetRepo, DefaultBranchOnly: true}
+	repo, _, err := g.client.Repositories.CreateFork(context.Background(), *repository.GetOwner().Name, repository.GetName(), opt)
+	if err != nil {
+		return nil, err
+	}
+	return repo, nil
 }

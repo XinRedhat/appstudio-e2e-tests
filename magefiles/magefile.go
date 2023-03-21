@@ -24,7 +24,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
 	remoteimg "github.com/google/go-containerregistry/pkg/v1/remote"
-	gh "github.com/google/go-github/v44/github"
+	gh "github.com/google/go-github/v50/github"
 	"github.com/magefile/mage/sh"
 	buildservice "github.com/redhat-appstudio/build-service/api/v1alpha1"
 	"github.com/redhat-appstudio/e2e-tests/magefiles/installation"

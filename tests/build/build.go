@@ -9,7 +9,7 @@ import (
 
 	"k8s.io/utils/pointer"
 
-	"github.com/google/go-github/v44/github"
+	"github.com/google/go-github/v50/github"
 	"github.com/redhat-appstudio/e2e-tests/pkg/utils/build"
 	"github.com/redhat-appstudio/e2e-tests/pkg/utils/tekton"
 

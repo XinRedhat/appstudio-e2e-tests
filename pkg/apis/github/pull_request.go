@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/go-github/v44/github"
+	"github.com/google/go-github/v50/github"
 )
 
 func (g *Github) ListPullRequests(repository string) ([]*github.PullRequest, error) {
@@ -32,9 +32,14 @@ func (g *Github) ListPullRequestCommentsSince(repository string, prNumber int, s
 
 func (g *Github) MergePullRequest(repository string, prNumber int) (*github.PullRequestMergeResult, error) {
 	mergeResult, _, err := g.client.PullRequests.Merge(context.Background(), g.organization, repository, prNumber, "", &github.PullRequestOptions{})
+
 	if err != nil {
 		return nil, fmt.Errorf("error when merging pull request number %d for the repo %s: %v", prNumber, repository, err)
 	}
 
 	return mergeResult, nil
+}
+
+func (g *Github) OpenPullRequest(repository *github.Repository) {
+
 }

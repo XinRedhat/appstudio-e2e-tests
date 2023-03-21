@@ -3,7 +3,8 @@ package github
 import (
 	"context"
 	"fmt"
-	"github.com/google/go-github/v44/github"
+
+	"github.com/google/go-github/v50/github"
 )
 
 func (g *Github) DeleteRef(repository, branchName string) error {
