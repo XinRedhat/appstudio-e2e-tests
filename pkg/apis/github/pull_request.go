@@ -40,6 +40,19 @@ func (g *Github) MergePullRequest(repository string, prNumber int) (*github.Pull
 	return mergeResult, nil
 }
 
-func (g *Github) OpenPullRequest(repository *github.Repository) {
+// CreatePullRequest Create a PullRequest on the "main" branch
+func (g *Github) CreatePullRequest(repo, branch, baseBranch string) (*github.PullRequest, error) {
+	newPR := &github.NewPullRequest{
+		Title: github.String("Pac test new PR"),
+		Head:  github.String(branch),
+		Base:  github.String(baseBranch),
+		Body:  github.String("Pac e2e test!"),
+	}
+	pr, _, err := g.client.PullRequests.Create(context.Background(), g.organization, repo, newPR)
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil, err
+	}
 
+	return pr, nil
 }

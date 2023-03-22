@@ -121,12 +121,12 @@ func (g *Github) DeleteRepository(repository *github.Repository) error {
 	return nil
 }
 
-func (g *Github) ForkRepository(repository *github.Repository, targetOrg, targetRepo string) (*github.Repository, error) {
-	GinkgoWriter.Printf("Fork repository %s\n", *repository.GitURL)
-	opt := &github.RepositoryCreateForkOptions{Organization: targetOrg, Name: targetRepo, DefaultBranchOnly: true}
-	repo, _, err := g.client.Repositories.CreateFork(context.Background(), *repository.GetOwner().Name, repository.GetName(), opt)
-	if err != nil {
+func (g *Github) ForkRepository(sourceOwner, sourceRepo, targetRepo string) (*github.Repository, error) {
+	opt := &github.RepositoryCreateForkOptions{Organization: g.organization, Name: targetRepo, DefaultBranchOnly: true}
+	repo, _, err := g.client.Repositories.CreateFork(context.Background(), sourceOwner, sourceRepo, opt)
+	if _, ok := err.(*github.AcceptedError); !ok {
 		return nil, err
 	}
+
 	return repo, nil
 }
